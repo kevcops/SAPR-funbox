@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+FUNBOX_USER="${FUNBOX_USER:-funbox}"
+REPO_DIR="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+FUNBOX_HOME="/home/${FUNBOX_USER}"
+BRANDING_DIR="/opt/funbox/branding"
+FREDOKA_COMMIT="35c584ff23450c9bcdf8819706e12fcdeefe1712"
+FREDOKA_URL="https://raw.githubusercontent.com/hafontia-zz/Fredoka-One/${FREDOKA_COMMIT}/fonts/ttf/Fredoka-Bold.ttf"
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "Run with sudo: sudo funbox-branding-install [repo-dir]" >&2
+  exit 1
+fi
+
+install -d -m 0755 "${BRANDING_DIR}"
+install -m 0644 "${REPO_DIR}/assets/branding/sa-party-logo.svg" "${BRANDING_DIR}/sa-party-logo.svg"
+install -m 0644 "${REPO_DIR}/assets/branding/sapr-funbox.css" "${BRANDING_DIR}/sapr-funbox.css"
+
+# PiKaraoke's logo route declares image/png, so render the canonical SVG once
+# during installation rather than asking the browser to interpret a mismatched
+# MIME type. The SVG remains the canonical artwork in the repo.
+rsvg-convert -w 1696 "${BRANDING_DIR}/sa-party-logo.svg" >"${BRANDING_DIR}/sa-party-logo.png"
+chmod 0644 "${BRANDING_DIR}/sa-party-logo.png"
+
+# Fredoka is used only for the KARAOKE display word. Pin the upstream revision
+# so a future font update cannot silently change the appliance appearance.
+if [[ ! -s "${BRANDING_DIR}/Fredoka-Bold.ttf" ]]; then
+  curl -fsSL "${FREDOKA_URL}" -o "${BRANDING_DIR}/Fredoka-Bold.ttf"
+fi
+chmod 0644 "${BRANDING_DIR}/Fredoka-Bold.ttf"
+
+PIKARAOKE_DIR="$(find "${FUNBOX_HOME}/.local/share/uv/tools/pikaraoke" -type d -path '*/site-packages/pikaraoke' -print -quit 2>/dev/null || true)"
+if [[ -z "${PIKARAOKE_DIR}" ]]; then
+  echo "Could not locate the uv-installed PiKaraoke package." >&2
+  exit 1
+fi
+
+STATIC_DIR="${PIKARAOKE_DIR}/static"
+TEMPLATE_DIR="${PIKARAOKE_DIR}/templates"
+install -d -m 0755 "${STATIC_DIR}/fonts"
+install -m 0644 "${BRANDING_DIR}/sapr-funbox.css" "${STATIC_DIR}/sapr-funbox.css"
+install -m 0644 "${BRANDING_DIR}/Fredoka-Bold.ttf" "${STATIC_DIR}/fonts/Fredoka-Bold.ttf"
+
+python3 - "${TEMPLATE_DIR}/base.html" "${TEMPLATE_DIR}/splash.html" <<'PY'
+from pathlib import Path
+import sys
+
+base = Path(sys.argv[1])
+splash = Path(sys.argv[2])
+
+base_text = base.read_text()
+css_marker = "filename='sapr-funbox.css'"
+if css_marker not in base_text:
+    needle = '<link rel="stylesheet" href="{{  url_for(\'static\', filename=\'custom.css\') }}">'
+    replacement = needle + '\n  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'sapr-funbox.css\') }}">'
+    if needle not in base_text:
+        raise SystemExit("PiKaraoke base.html changed: custom.css hook not found")
+    base_text = base_text.replace(needle, replacement, 1)
+
+header_marker = 'class="sapr-brand-header"'
+if header_marker not in base_text:
+    needle = '<body>\n\n  {% if not blank_page %}'
+    replacement = '''<body>\n\n  {% if not blank_page %}\n  <div class="sapr-brand-header">\n    <img src="{{ url_for('images.logo') }}" alt="SA Party Rental">\n    <div class="sapr-karaoke-word">KARAOKE</div>\n  </div>'''
+    if needle not in base_text:
+        raise SystemExit("PiKaraoke base.html changed: body hook not found")
+    base_text = base_text.replace(needle, replacement, 1)
+
+# Keep the underlying engine name out of the normal renter-facing navigation.
+base_text = base_text.replace('<span>Pikaraoke</span>', '<span>Funbox</span>')
+base.write_text(base_text)
+
+splash_text = splash.read_text()
+if 'id="sapr-tv-karaoke"' not in splash_text:
+    needle = '''    <img class="logo" src="{{ url_for('images.logo') }}" width="500px" alt="logo"\n      {% if hide_logo %}style="display: none"{% endif %} />'''
+    replacement = needle + '\n    <div id="sapr-tv-karaoke">KARAOKE</div>'
+    if needle not in splash_text:
+        raise SystemExit("PiKaraoke splash.html changed: logo hook not found")
+    splash_text = splash_text.replace(needle, replacement, 1)
+splash.write_text(splash_text)
+PY
+
+echo "SAPR Funbox branding installed into ${PIKARAOKE_DIR}"
