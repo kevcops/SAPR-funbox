@@ -19,7 +19,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   sudo curl ca-certificates git ffmpeg pulseaudio-utils \
   xserver-xorg xinit openbox chromium \
   plymouth plymouth-themes \
-  network-manager dbus-x11 \
+  network-manager network-manager-gnome tint2 lxpolkit dbus-x11 \
   unclutter fonts-dejavu-core \
   rsync zip jq
 
@@ -96,6 +96,7 @@ echo
 echo "Install complete."
 echo "Permanent songs: ${MEDIA_ROOT}/top-karaoke"
 echo "Current event:    ${MEDIA_ROOT}/events/current"
+echo "Wi-Fi controls:   NetworkManager applet in the top panel"
 echo
 echo "Recommended: install/authenticate Tailscale separately if you want remote support."
 echo "Reboot with: sudo reboot"
