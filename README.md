@@ -12,6 +12,7 @@ Turn a clean Debian install into a dedicated PiKaraoke rental box:
 - Chromium opens the local PiKaraoke player fullscreen
 - local karaoke storage only
 - permanent "Top Karaoke" library + event-specific library
+- PipeWire/WirePlumber audio with HDMI and analog/PA output selection
 - Tailscale-ready remote support
 - clean structure for adding Retro Gaming / EmulationStation later
 
@@ -44,12 +45,42 @@ cd SAPR-funbox
 sudo ./install.sh
 ```
 
-The installer creates a dedicated `funbox` appliance user, installs PiKaraoke using the upstream installation method, installs a minimal X/Chromium kiosk stack, creates the local song library, and enables startup services.
+The installer creates a dedicated `funbox` appliance user, installs PiKaraoke, installs a minimal X/Chromium kiosk stack, configures PipeWire/WirePlumber audio, creates the local song library, and enables startup services.
 
 Reboot when it finishes:
 
 ```bash
 sudo reboot
+```
+
+## Audio
+
+Funbox uses PipeWire and WirePlumber for the appliance user's audio session. ALSA remains the hardware layer underneath it.
+
+At kiosk startup Funbox:
+
+1. clears lingering ALSA hardware mute state without assuming a fixed sound-card number;
+2. prefers an available HDMI/TV output;
+3. falls back to the analog/headphone output when HDMI audio is unavailable; and
+4. sets the selected PipeWire sink to a known startup volume.
+
+Use the audio helper from the administrator account:
+
+```bash
+sudo funbox-audio status
+sudo funbox-audio auto
+sudo funbox-audio hdmi
+sudo funbox-audio analog
+```
+
+`auto` prefers HDMI when a usable HDMI sink exists, otherwise it selects analog. Use `analog` when the headphone jack is feeding a PA/mixer even if an HDMI display is also connected. Use `hdmi` when sound should travel to the TV/receiver over HDMI.
+
+The helper operates on the dedicated `funbox` user's PipeWire session, so it can change the live Chromium/PiKaraoke output even when invoked remotely over SSH as the administrator. Existing audio streams are moved to the newly selected sink.
+
+The default startup volume is 80%. It can be overridden for a manual invocation by setting `FUNBOX_AUDIO_VOLUME`, for example:
+
+```bash
+sudo FUNBOX_AUDIO_VOLUME=0.65 funbox-audio analog
 ```
 
 ## Local library layout
@@ -129,6 +160,10 @@ funbox-restart
 funbox-support
 funbox-library status
 funbox-event clear
+sudo funbox-audio status
+sudo funbox-audio auto
+sudo funbox-audio hdmi
+sudo funbox-audio analog
 ```
 
 ## Troubleshooting
@@ -139,7 +174,13 @@ Generate a support bundle:
 funbox-support
 ```
 
-The bundle is written to the current user's home directory and contains service status, journal excerpts, network information, display information and disk usage. It does not copy karaoke media.
+The bundle is written to the current user's home directory and contains service status, journal excerpts, network information, disk usage, ALSA device information, audio-process state and the kiosk audio-startup log when available. It does not copy karaoke media.
+
+For live PipeWire details, use:
+
+```bash
+sudo funbox-audio status
+```
 
 ## Architecture
 
@@ -149,6 +190,9 @@ Debian
 ├── PiKaraoke service
 ├── Xorg + Openbox
 ├── Chromium kiosk
+├── PipeWire + WirePlumber
+│   ├── HDMI / TV output
+│   └── Analog / headphone / PA output
 ├── local media only
 ├── Tailscale (optional)
 └── future/
