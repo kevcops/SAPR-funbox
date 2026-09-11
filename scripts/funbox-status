@@ -15,3 +15,7 @@ df -h /srv/funbox 2>/dev/null || df -h /
 echo
 echo "Network:"
 hostname -I 2>/dev/null || true
+echo
+echo "Audio hardware:"
+aplay -l 2>/dev/null | sed -n '/^card /p' || true
+echo "For live output selection: sudo funbox-audio status"
