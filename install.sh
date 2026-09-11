@@ -16,7 +16,8 @@ apt-get update
 
 echo "==> Installing appliance dependencies"
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  sudo curl ca-certificates git ffmpeg pulseaudio-utils \
+  sudo curl ca-certificates git ffmpeg \
+  alsa-utils pipewire pipewire-pulse pipewire-alsa wireplumber pulseaudio-utils \
   xserver-xorg xinit openbox chromium \
   plymouth plymouth-themes \
   network-manager network-manager-gnome tint2 lxpolkit zenity dbus-x11 rfkill \
@@ -124,7 +125,7 @@ sudo -u "${FUNBOX_USER}" -H bash -lc \
   'export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.deno/bin:$PATH"; if uv tool list 2>/dev/null | grep -q "pikaraoke"; then uv tool upgrade pikaraoke; else uv tool install pikaraoke; fi'
 
 echo "==> Installing appliance scripts"
-for f in funbox-status funbox-restart funbox-support funbox-library funbox-event funbox-wifi-setup; do
+for f in funbox-status funbox-restart funbox-support funbox-library funbox-event funbox-wifi-setup funbox-audio; do
   install -m 0755 "${REPO_DIR}/scripts/${f}" "/usr/local/bin/${f}"
 done
 
@@ -172,7 +173,14 @@ echo "Permanent songs: ${MEDIA_ROOT}/top-karaoke"
 echo "Current event:    ${MEDIA_ROOT}/events/current"
 echo "Wi-Fi setup:      opens automatically at startup when offline"
 echo "Customer URL:     http://karaoke.local:5555"
+echo "Audio:            PipeWire/WirePlumber with automatic HDMI -> analog fallback"
 echo "Tailscale:        installed and tailscaled enabled"
+echo
+echo "Audio controls:"
+echo "  sudo funbox-audio status"
+echo "  sudo funbox-audio auto"
+echo "  sudo funbox-audio hdmi"
+echo "  sudo funbox-audio analog"
 echo
 echo "To enroll this Funbox in your Tailscale network, run:"
 echo "  sudo tailscale up --hostname=funbox"
