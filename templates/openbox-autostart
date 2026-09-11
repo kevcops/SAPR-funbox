@@ -18,11 +18,12 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# PiKaraoke's /splash endpoint is the actual TV/video player. The root URL is
+# the phone/controller interface and does not register as a playback screen.
 chromium \
   --kiosk \
   --no-first-run \
   --disable-session-crashed-bubble \
   --disable-infobars \
   --autoplay-policy=no-user-gesture-required \
-  http://127.0.0.1:5555/ &
-
+  'http://127.0.0.1:5555/splash?confirm=false' &
