@@ -22,6 +22,33 @@ ip route >>"${OUT}/network.txt" 2>&1 || true
 ls -lah /srv/funbox/karaoke/top-karaoke >"${OUT}/top-library-listing.txt" 2>&1 || true
 ls -lah /srv/funbox/karaoke/events/current >"${OUT}/event-library-listing.txt" 2>&1 || true
 
+{
+  echo "=== ALSA playback devices ==="
+  aplay -l 2>&1 || true
+  echo
+  echo "=== ALSA cards ==="
+  cat /proc/asound/cards 2>&1 || true
+  echo
+  echo "=== Funbox audio manager ==="
+  if command -v funbox-audio >/dev/null 2>&1; then
+    if [[ "${EUID}" -eq 0 ]]; then
+      funbox-audio status 2>&1 || true
+    else
+      echo "Run 'sudo funbox-audio status' for live Funbox PipeWire details."
+    fi
+  else
+    echo "funbox-audio is not installed."
+  fi
+  echo
+  echo "=== Audio processes ==="
+  ps -ef | grep -E '[p]ipewire|[w]ireplumber|[p]ulseaudio' 2>&1 || true
+} >"${OUT}/audio.txt" 2>&1
+
+# Include the kiosk audio initialization result when present.
+if [[ -f /tmp/funbox-audio-startup.log ]]; then
+  cp /tmp/funbox-audio-startup.log "${OUT}/audio-startup.log" 2>/dev/null || true
+fi
+
 # List filenames only; no media content is copied.
 (cd "$(dirname "${OUT}")" && zip -qr "${ZIP}" "$(basename "${OUT}")")
 rm -rf "${OUT}"
