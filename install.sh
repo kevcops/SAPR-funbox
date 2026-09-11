@@ -33,6 +33,10 @@ install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/top-karaoke"
 install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/events/current"
 install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${FUNBOX_HOME}/.config/openbox"
 
+# install -d can create intermediate parent directories as root. The dedicated
+# account must own its entire home before uv/Deno write shell configuration.
+chown -R "${FUNBOX_USER}:${FUNBOX_USER}" "${FUNBOX_HOME}"
+
 echo "==> Installing uv for PiKaraoke"
 sudo -u "${FUNBOX_USER}" -H bash -lc \
   'if [[ ! -x "$HOME/.local/bin/uv" && ! -x "$HOME/.cargo/bin/uv" ]]; then curl -fsSL https://astral.sh/uv/install.sh | sh; fi'
