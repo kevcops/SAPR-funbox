@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Opens Debian's Bluetooth device manager in the active Funbox graphical
+# session. Pair/connect the speaker here; once connected, WirePlumber exposes it
+# as a PipeWire sink and `funbox-audio bluetooth` can route karaoke to it.
+
+if ! command -v blueman-manager >/dev/null 2>&1; then
+  zenity --error --title="Bluetooth" --text="Bluetooth setup is not installed on this Funbox." 2>/dev/null || true
+  exit 1
+fi
+
+rfkill unblock bluetooth >/dev/null 2>&1 || true
+blueman-manager >/tmp/funbox-bluetooth.log 2>&1 &
