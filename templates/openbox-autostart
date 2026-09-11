@@ -5,8 +5,10 @@ lxpolkit &
 tint2 &
 nm-applet &
 
-# Give NetworkManager and the panel a moment to appear.
+# Give the desktop services a moment to become ready, then automatically open
+# the renter-facing Wi-Fi chooser when no network connection is active.
 sleep 2
+/usr/local/bin/funbox-wifi-setup
 
 # Give the PiKaraoke service a moment to become ready.
 for _ in $(seq 1 60); do
