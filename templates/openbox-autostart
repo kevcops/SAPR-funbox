@@ -1,5 +1,13 @@
 #!/bin/sh
 
+# Lightweight desktop services needed for renter-facing Wi-Fi setup.
+lxpolkit &
+tint2 &
+nm-applet &
+
+# Give NetworkManager and the panel a moment to appear.
+sleep 2
+
 # Give the PiKaraoke service a moment to become ready.
 for _ in $(seq 1 60); do
   if curl -fsS http://127.0.0.1:5555/ >/dev/null 2>&1; then
