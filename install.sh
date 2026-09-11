@@ -58,6 +58,23 @@ cat >/etc/NetworkManager/conf.d/10-funbox-managed.conf <<'EOF'
 managed=true
 EOF
 
+# The renter-facing graphical session runs as the locked-down funbox account.
+# Permit only NetworkManager operations needed to select/connect Wi-Fi without
+# exposing the SAPR administrator password or granting general sudo access.
+install -d /etc/polkit-1/rules.d
+cat >/etc/polkit-1/rules.d/49-funbox-networkmanager.rules <<EOF
+polkit.addRule(function(action, subject) {
+    if (subject.user == "${FUNBOX_USER}" &&
+        (action.id == "org.freedesktop.NetworkManager.settings.modify.system" ||
+         action.id == "org.freedesktop.NetworkManager.settings.modify.own" ||
+         action.id == "org.freedesktop.NetworkManager.network-control" ||
+         action.id == "org.freedesktop.NetworkManager.enable-disable-wifi")) {
+        return polkit.Result.YES;
+    }
+});
+EOF
+chmod 0644 /etc/polkit-1/rules.d/49-funbox-networkmanager.rules
+
 echo "==> Installing uv for PiKaraoke"
 sudo -u "${FUNBOX_USER}" -H bash -lc \
   'if [[ ! -x "$HOME/.local/bin/uv" && ! -x "$HOME/.cargo/bin/uv" ]]; then curl -fsSL https://astral.sh/uv/install.sh | sh; fi'
