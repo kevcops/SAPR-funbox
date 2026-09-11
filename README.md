@@ -7,12 +7,12 @@ A Debian-based appliance image for SA Party Rental.
 Turn a clean Debian install into a dedicated PiKaraoke rental box:
 
 - no full desktop environment
-- boot splash branded for SA Party Rental + Karaoke
+- SAPR-branded boot and karaoke idle screens
 - PiKaraoke starts automatically
 - Chromium opens the local PiKaraoke player fullscreen
 - local karaoke storage only
 - permanent "Top Karaoke" library + event-specific library
-- PipeWire/WirePlumber audio with HDMI and analog/PA output selection
+- PipeWire/WirePlumber audio with HDMI, analog/PA, and Bluetooth output selection
 - Tailscale-ready remote support
 - clean structure for adding Retro Gaming / EmulationStation later
 
@@ -45,7 +45,7 @@ cd SAPR-funbox
 sudo ./install.sh
 ```
 
-The installer creates a dedicated `funbox` appliance user, installs PiKaraoke, installs a minimal X/Chromium kiosk stack, configures PipeWire/WirePlumber audio, creates the local song library, and enables startup services.
+The installer creates a dedicated `funbox` appliance user, installs PiKaraoke, applies the SAPR Funbox branding layer, installs a minimal X/Chromium kiosk stack, configures PipeWire/WirePlumber audio, creates the local song library, and enables startup services.
 
 Reboot when it finishes:
 
@@ -53,16 +53,36 @@ Reboot when it finishes:
 sudo reboot
 ```
 
+## Branding
+
+The approved v1 visual system is:
+
+- Plum `#7D6A89` — primary UI / TV idle background
+- Coral `#F38C88` — primary actions and highlights
+- Aqua `#A6E1E3` — secondary/selected states
+- Cream `#EFE5CF` — light surfaces and backgrounds
+- Manrope — phone/controller and system UI
+- Fredoka — the display word **KARAOKE** only
+
+The canonical SA Party Rental logo is `assets/branding/sa-party-logo.svg`. Do not redraw, typeset, or reconstruct the individual logo letters. The installer renders that exact SVG to PNG for PiKaraoke and Plymouth.
+
+PiKaraoke remains an upstream uv package. `scripts/funbox-branding-install` reapplies the small SAPR theme/template overlay after every PiKaraoke install or upgrade, so we do not maintain a full fork just for branding.
+
+The branded experience is intended to expose SAPR Funbox rather than Debian/PiKaraoke during normal operation:
+
+```text
+Power on
+  -> plum SAPR Funbox boot splash
+  -> Wi-Fi chooser only when needed
+  -> SAPR Karaoke idle/player screen
+  -> song playback
+```
+
 ## Audio
 
 Funbox uses PipeWire and WirePlumber for the appliance user's audio session. ALSA remains the hardware layer underneath it.
 
-At kiosk startup Funbox:
-
-1. clears lingering ALSA hardware mute state without assuming a fixed sound-card number;
-2. prefers an available HDMI/TV output;
-3. falls back to the analog/headphone output when HDMI audio is unavailable; and
-4. sets the selected PipeWire sink to a known startup volume.
+At kiosk startup Funbox clears lingering ALSA hardware mute state, prefers an available HDMI/TV output, falls back to analog/headphone when HDMI is unavailable, and sets a known startup volume.
 
 Use the audio helper from the administrator account:
 
@@ -71,9 +91,18 @@ sudo funbox-audio status
 sudo funbox-audio auto
 sudo funbox-audio hdmi
 sudo funbox-audio analog
+sudo funbox-audio bluetooth
 ```
 
-`auto` prefers HDMI when a usable HDMI sink exists, otherwise it selects analog. Use `analog` when the headphone jack is feeding a PA/mixer even if an HDMI display is also connected. Use `hdmi` when sound should travel to the TV/receiver over HDMI.
+`auto` prefers HDMI when a usable HDMI sink exists, otherwise it selects analog. Use `analog` when the headphone jack is feeding a PA/mixer even if an HDMI display is connected. `bluetooth` selects the first connected Bluetooth audio sink.
+
+Bluetooth support uses BlueZ + PipeWire/WirePlumber. To pair or connect a speaker from the Funbox graphical session, run:
+
+```bash
+funbox-bluetooth-setup
+```
+
+Once the speaker is connected and appears as a PipeWire sink, select it with `sudo funbox-audio bluetooth`. A branded web audio selector is planned on top of this backend.
 
 The helper operates on the dedicated `funbox` user's PipeWire session, so it can change the live Chromium/PiKaraoke output even when invoked remotely over SSH as the administrator. Existing audio streams are moved to the newly selected sink.
 
@@ -129,29 +158,6 @@ funbox-event clear
 
 PiKaraoke itself supports adding compatible online media through its own interface where you have permission to download/use the source.
 
-## Branding and splash screens
-
-The repo is already split by product:
-
-```text
-assets/
-├── branding/
-│   └── logo.png
-└── splash/
-    ├── karaoke/
-    └── retro/
-```
-
-v1 installs the Karaoke Plymouth theme.
-
-Replace `assets/branding/logo.png` and/or the final splash artwork before deploying a branded production unit. The included splash is a safe text-based placeholder so the installer works before final artwork is added.
-
-The Retro directory is intentionally present now so the future Retro package can use its own:
-
-**SA Party Rental + Retro Gaming**
-
-boot experience.
-
 ## Useful commands
 
 ```bash
@@ -164,6 +170,8 @@ sudo funbox-audio status
 sudo funbox-audio auto
 sudo funbox-audio hdmi
 sudo funbox-audio analog
+sudo funbox-audio bluetooth
+funbox-bluetooth-setup
 ```
 
 ## Troubleshooting
@@ -186,20 +194,22 @@ sudo funbox-audio status
 
 ```text
 Debian
-├── Plymouth branded boot splash
-├── PiKaraoke service
+├── Plymouth SAPR boot splash
+├── PiKaraoke engine + SAPR branding overlay
 ├── Xorg + Openbox
 ├── Chromium kiosk
 ├── PipeWire + WirePlumber
 │   ├── HDMI / TV output
-│   └── Analog / headphone / PA output
+│   ├── Analog / headphone / PA output
+│   └── Bluetooth speaker output
+├── BlueZ / Blueman pairing
 ├── local media only
 ├── Tailscale (optional)
 └── future/
     └── Retro / EmulationStation / RetroArch
 ```
 
-PiKaraoke is kept upstream rather than vendored into this repository so it can be upgraded independently.
+PiKaraoke is kept upstream rather than vendored into this repository so it can be upgraded independently. The installer reapplies SAPR's narrow presentation-layer modifications after upgrades.
 
 ## Retro roadmap
 
