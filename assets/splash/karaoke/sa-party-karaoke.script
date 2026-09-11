@@ -1,14 +1,25 @@
-Window.SetBackgroundTopColor(0.02, 0.02, 0.02);
-Window.SetBackgroundBottomColor(0.02, 0.02, 0.02);
+# SAPR Funbox boot splash
+# Plum #7D6A89 = 125/255, 106/255, 137/255
+Window.SetBackgroundTopColor(0.490, 0.416, 0.537);
+Window.SetBackgroundBottomColor(0.490, 0.416, 0.537);
 
-title = Text("SA PARTY RENTAL");
-title.SetHorizontalAlignment(0.5);
-title.SetVerticalAlignment(0.5);
-title.SetX(Window.GetWidth() / 2);
-title.SetY(Window.GetHeight() / 2 - 30);
+logo.original = Image("sa-party-logo.png");
+logo.max_width = Window.GetWidth() * 0.62;
+logo.scale = logo.max_width / logo.original.GetWidth();
+logo.image = logo.original.Scale(logo.max_width, logo.original.GetHeight() * logo.scale);
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetX(Window.GetWidth() / 2 - logo.image.GetWidth() / 2);
+logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2 - 55);
+logo.sprite.SetZ(10);
 
-subtitle = Text("+ KARAOKE");
-subtitle.SetHorizontalAlignment(0.5);
-subtitle.SetVerticalAlignment(0.5);
-subtitle.SetX(Window.GetWidth() / 2);
-subtitle.SetY(Window.GetHeight() / 2 + 20);
+funbox.image = Image.Text("F U N B O X", 1.0, 0.98, 0.95);
+funbox.sprite = Sprite(funbox.image);
+funbox.sprite.SetX(Window.GetWidth() / 2 - funbox.image.GetWidth() / 2);
+funbox.sprite.SetY(Window.GetHeight() / 2 + logo.image.GetHeight() / 2 + 5);
+funbox.sprite.SetZ(10);
+
+status.image = Image.Text("Initializing your party...", 0.94, 0.90, 0.82);
+status.sprite = Sprite(status.image);
+status.sprite.SetX(Window.GetWidth() / 2 - status.image.GetWidth() / 2);
+status.sprite.SetY(Window.GetHeight() / 2 + logo.image.GetHeight() / 2 + 42);
+status.sprite.SetZ(10);
