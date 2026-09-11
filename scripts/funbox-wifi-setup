@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -u
+
+# Renter-facing Wi-Fi setup. If the Funbox already has a network connection,
+# do nothing. Otherwise present nearby Wi-Fi networks immediately at startup.
+
+# Give NetworkManager a few seconds to initialize.
+for _ in $(seq 1 15); do
+  if nmcli general status >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+# A working Ethernet or Wi-Fi connection means no setup dialog is needed.
+if nmcli -t -f TYPE,STATE device status 2>/dev/null | grep -Eq '^(ethernet|wifi):connected$'; then
+  exit 0
+fi
+
+nmcli radio wifi on >/dev/null 2>&1 || true
+sleep 2
+
+while true; do
+  nmcli device wifi rescan >/dev/null 2>&1 || true
+  sleep 2
+
+  mapfile -t ROWS < <(
+    nmcli -t -e no -f SSID,SIGNAL,SECURITY device wifi list 2>/dev/null |
+      awk -F: 'NF >= 2 && $1 != "" && !seen[$1]++ {print $1 "\t" $2 "\t" $3}' |
+      sort -t$'\t' -k2,2nr
+  )
+
+  if [[ ${#ROWS[@]} -eq 0 ]]; then
+    if ! zenity --question \
+      --title="SA Party Rental Funbox" \
+      --text="No Wi-Fi networks were found.\n\nMake sure Wi-Fi is enabled, then choose Retry." \
+      --ok-label="Retry" --cancel-label="Continue Offline"; then
+      exit 0
+    fi
+    continue
+  fi
+
+  LIST_ARGS=()
+  for row in "${ROWS[@]}"; do
+    IFS=$'\t' read -r ssid signal security <<<"$row"
+    LIST_ARGS+=("$ssid" "${signal}%" "${security:-Open}")
+  done
+
+  SSID=$(zenity --list \
+    --title="SA Party Rental Funbox" \
+    --text="Select a Wi-Fi network" \
+    --width=560 --height=480 \
+    --column="Wi-Fi network" --column="Signal" --column="Security" \
+    "${LIST_ARGS[@]}") || exit 0
+
+  [[ -n "$SSID" ]] || continue
+
+  SECURITY=$(printf '%s\n' "${ROWS[@]}" | awk -F'\t' -v s="$SSID" '$1 == s {print $3; exit}')
+
+  if [[ -z "$SECURITY" || "$SECURITY" == "--" ]]; then
+    OUTPUT=$(nmcli device wifi connect "$SSID" 2>&1)
+    RC=$?
+  else
+    PASSWORD=$(zenity --password \
+      --title="Connect to $SSID" \
+      --text="Enter the Wi-Fi password for $SSID") || continue
+    OUTPUT=$(nmcli device wifi connect "$SSID" password "$PASSWORD" 2>&1)
+    RC=$?
+  fi
+
+  if [[ $RC -eq 0 ]]; then
+    zenity --info --timeout=2 \
+      --title="SA Party Rental Funbox" \
+      --text="Connected to $SSID" >/dev/null 2>&1 || true
+    exit 0
+  fi
+
+  zenity --error \
+    --title="Wi-Fi connection failed" \
+    --text="Could not connect to $SSID.\n\n$OUTPUT"
+done
