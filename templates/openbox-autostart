@@ -5,9 +5,16 @@ lxpolkit &
 tint2 &
 nm-applet &
 
-# Give the desktop services a moment to become ready, then automatically open
-# the renter-facing Wi-Fi chooser when no network connection is active.
+# Give the per-user desktop and PipeWire services a moment to become ready.
 sleep 2
+
+# Initialize audio before Chromium starts. Auto prefers HDMI/TV when an HDMI
+# sink is available, otherwise it falls back to the analog/headphone output.
+# This also clears hardware-level ALSA mute state left behind by a prior boot.
+/usr/local/bin/funbox-audio auto >/tmp/funbox-audio-startup.log 2>&1 || true
+
+# Automatically open the renter-facing Wi-Fi chooser when no network
+# connection is active.
 /usr/local/bin/funbox-wifi-setup
 
 # Give the PiKaraoke service a moment to become ready.
