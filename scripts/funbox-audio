@@ -6,12 +6,13 @@ STARTUP_VOLUME="${FUNBOX_AUDIO_VOLUME:-0.80}"
 
 usage() {
   cat <<'EOF'
-Usage: funbox-audio <status|auto|hdmi|analog>
+Usage: funbox-audio <status|auto|hdmi|analog|bluetooth>
 
-  status  Show the Funbox PipeWire audio state and current default sink
-  auto    Prefer HDMI when available, otherwise use analog/headphone output
-  hdmi    Select HDMI/TV audio
-  analog  Select analog/headphone/PA audio
+  status     Show the Funbox PipeWire audio state and current default sink
+  auto       Prefer HDMI when available, otherwise use analog/headphone output
+  hdmi       Select HDMI/TV audio
+  analog     Select analog/headphone/PA audio
+  bluetooth  Select the first connected Bluetooth audio output
 
 Run as the funbox account, or as root (for example: sudo funbox-audio hdmi).
 EOF
@@ -48,7 +49,6 @@ wait_for_pipewire() {
 }
 
 # Clear hardware-level mute state without assuming a fixed ALSA card number.
-# Different Funbox hardware may enumerate HDMI and analog cards differently.
 unmute_alsa() {
   local card controls ctl
   while read -r card; do
@@ -83,6 +83,9 @@ find_sink() {
       ;;
     analog)
       list_sinks | awk '$2 ~ /\.analog-/ {print $2; exit}'
+      ;;
+    bluetooth)
+      list_sinks | awk '$2 ~ /^bluez_output\./ {print $2; exit}'
       ;;
   esac
 }
@@ -128,10 +131,13 @@ case "${command}" in
     fi
     set_sink "${sink}"
     ;;
-  hdmi|analog)
+  hdmi|analog|bluetooth)
     sink="$(find_sink "${command}")"
     if [[ -z "${sink}" ]]; then
       echo "Requested ${command} audio output is not currently available." >&2
+      if [[ "${command}" == "bluetooth" ]]; then
+        echo "Pair/connect a Bluetooth speaker first, then retry." >&2
+      fi
       echo "Use 'funbox-audio status' to see detected outputs." >&2
       exit 1
     fi
