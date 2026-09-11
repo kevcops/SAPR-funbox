@@ -19,7 +19,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   sudo curl ca-certificates git ffmpeg pulseaudio-utils \
   xserver-xorg xinit openbox chromium \
   plymouth plymouth-themes \
-  network-manager network-manager-gnome tint2 lxpolkit zenity dbus-x11 \
+  network-manager network-manager-gnome tint2 lxpolkit zenity dbus-x11 rfkill \
   unclutter fonts-dejavu-core \
   rsync zip jq
 
@@ -36,6 +36,16 @@ install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${FUNBOX_HOME}/.config/openb
 # install -d can create intermediate parent directories as root. The dedicated
 # account must own its entire home before uv/Deno write shell configuration.
 chown -R "${FUNBOX_USER}:${FUNBOX_USER}" "${FUNBOX_HOME}"
+
+echo "==> Configuring NetworkManager for renter-facing Wi-Fi"
+# Debian's installer can leave interfaces under the ifupdown plugin while
+# NetworkManager defaults to managed=false. A Funbox needs NetworkManager to
+# own those interfaces so nmcli/nm-applet and first-boot Wi-Fi setup can scan.
+install -d /etc/NetworkManager/conf.d
+cat >/etc/NetworkManager/conf.d/10-funbox-managed.conf <<'EOF'
+[ifupdown]
+managed=true
+EOF
 
 echo "==> Installing uv for PiKaraoke"
 sudo -u "${FUNBOX_USER}" -H bash -lc \
