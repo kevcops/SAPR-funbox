@@ -16,7 +16,7 @@ apt-get update
 
 echo "==> Installing appliance dependencies"
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  sudo curl ca-certificates git ffmpeg \
+  sudo curl ca-certificates git ffmpeg pulseaudio-utils \
   xserver-xorg xinit openbox chromium \
   plymouth plymouth-themes \
   network-manager dbus-x11 \
@@ -33,9 +33,17 @@ install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/top-karaoke"
 install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/events/current"
 install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${FUNBOX_HOME}/.config/openbox"
 
-echo "==> Installing PiKaraoke using upstream installer"
+echo "==> Installing uv for PiKaraoke"
 sudo -u "${FUNBOX_USER}" -H bash -lc \
-  'curl -fsSL https://raw.githubusercontent.com/vicwomg/pikaraoke/master/build_scripts/install/install.sh | bash'
+  'if [[ ! -x "$HOME/.local/bin/uv" && ! -x "$HOME/.cargo/bin/uv" ]]; then curl -fsSL https://astral.sh/uv/install.sh | sh; fi'
+
+echo "==> Installing Deno for PiKaraoke/yt-dlp"
+sudo -u "${FUNBOX_USER}" -H bash -lc \
+  'if [[ ! -x "$HOME/.deno/bin/deno" ]] && ! command -v node >/dev/null 2>&1; then curl -fsSL https://deno.land/install.sh | sh; fi'
+
+echo "==> Installing PiKaraoke as dedicated appliance user"
+sudo -u "${FUNBOX_USER}" -H bash -lc \
+  'export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.deno/bin:$PATH"; if uv tool list 2>/dev/null | grep -q "pikaraoke"; then uv tool upgrade pikaraoke; else uv tool install pikaraoke; fi'
 
 echo "==> Installing appliance scripts"
 for f in funbox-status funbox-restart funbox-support funbox-library funbox-event; do
