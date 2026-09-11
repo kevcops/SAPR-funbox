@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -u
+echo "SAPR Funbox"
+echo "==================="
+echo "Mode: Karaoke (v1)"
+echo
+systemctl --no-pager --full status pikaraoke.service 2>/dev/null | head -n 12 || true
+echo
+echo "Media:"
+du -sh /srv/funbox/karaoke/top-karaoke 2>/dev/null || true
+du -sh /srv/funbox/karaoke/events/current 2>/dev/null || true
+echo
+echo "Disk:"
+df -h /srv/funbox 2>/dev/null || df -h /
+echo
+echo "Network:"
+hostname -I 2>/dev/null || true

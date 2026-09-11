@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+sudo systemctl restart pikaraoke.service
+echo "PiKaraoke restarted."

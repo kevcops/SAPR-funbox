@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DEST="/srv/funbox/karaoke/events/current"
+
+usage() {
+  echo "Usage:"
+  echo "  funbox-event import /path/to/event/media"
+  echo "  funbox-event clear"
+  echo "  funbox-event status"
+}
+
+case "${1:-}" in
+  import)
+    SRC="${2:-}"
+    [[ -n "${SRC}" && -d "${SRC}" ]] || { usage; exit 1; }
+    rsync -av --ignore-existing "${SRC}/" "${DEST}/"
+    echo "Imported event media into ${DEST}"
+    ;;
+  clear)
+    find "${DEST}" -mindepth 1 -maxdepth 1 -type f -delete
+    echo "Cleared current event media."
+    ;;
+  status)
+    find "${DEST}" -maxdepth 1 -type f | wc -l | awk '{print "Event files:", $1}'
+    du -sh "${DEST}" 2>/dev/null || true
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

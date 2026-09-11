@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DEST="/srv/funbox/karaoke/top-karaoke"
+
+usage() {
+  echo "Usage:"
+  echo "  funbox-library status"
+  echo "  funbox-library import /path/to/authorized/media"
+}
+
+case "${1:-}" in
+  status)
+    echo "Permanent karaoke library: ${DEST}"
+    find "${DEST}" -maxdepth 1 -type f | wc -l | awk '{print "Files:", $1}'
+    du -sh "${DEST}" 2>/dev/null || true
+    ;;
+  import)
+    SRC="${2:-}"
+    [[ -n "${SRC}" && -d "${SRC}" ]] || { usage; exit 1; }
+    rsync -av --ignore-existing "${SRC}/" "${DEST}/"
+    echo "Imported media into ${DEST}"
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -u
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+OUT="${HOME}/funbox-support-${STAMP}"
+ZIP="${OUT}.zip"
+mkdir -p "${OUT}"
+
+{
+  echo "SAPR Funbox support bundle"
+  date
+  uname -a
+  cat /etc/os-release 2>/dev/null
+} >"${OUT}/system.txt" 2>&1
+
+systemctl --no-pager --full status pikaraoke.service >"${OUT}/pikaraoke-status.txt" 2>&1 || true
+journalctl -u pikaraoke.service -b --no-pager -n 500 >"${OUT}/pikaraoke-journal.txt" 2>&1 || true
+journalctl -b --no-pager -n 500 >"${OUT}/boot-journal.txt" 2>&1 || true
+df -h >"${OUT}/disk.txt" 2>&1 || true
+ip addr >"${OUT}/network.txt" 2>&1 || true
+ip route >>"${OUT}/network.txt" 2>&1 || true
+ls -lah /srv/funbox/karaoke/top-karaoke >"${OUT}/top-library-listing.txt" 2>&1 || true
+ls -lah /srv/funbox/karaoke/events/current >"${OUT}/event-library-listing.txt" 2>&1 || true
+
+# List filenames only; no media content is copied.
+(cd "$(dirname "${OUT}")" && zip -qr "${ZIP}" "$(basename "${OUT}")")
+rm -rf "${OUT}"
+
+echo "${ZIP}"

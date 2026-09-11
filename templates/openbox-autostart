@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Give the PiKaraoke service a moment to become ready.
+for _ in $(seq 1 60); do
+  if curl -fsS http://127.0.0.1:5555/ >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+chromium \
+  --kiosk \
+  --no-first-run \
+  --disable-session-crashed-bubble \
+  --disable-infobars \
+  --autoplay-policy=no-user-gesture-required \
+  http://127.0.0.1:5555/ &
+

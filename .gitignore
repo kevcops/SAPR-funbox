@@ -1,0 +1,16 @@
+# Do not commit media
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.m4a
+*.flac
+*.wav
+*.avi
+*.mov
+*.zip
+
+# Local/editor files
+.DS_Store
+*.swp
+.env

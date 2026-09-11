@@ -1,0 +1,14 @@
+Window.SetBackgroundTopColor(0.02, 0.02, 0.02);
+Window.SetBackgroundBottomColor(0.02, 0.02, 0.02);
+
+title = Text("SA PARTY RENTAL");
+title.SetHorizontalAlignment(0.5);
+title.SetVerticalAlignment(0.5);
+title.SetX(Window.GetWidth() / 2);
+title.SetY(Window.GetHeight() / 2 - 30);
+
+subtitle = Text("+ KARAOKE");
+subtitle.SetHorizontalAlignment(0.5);
+subtitle.SetVerticalAlignment(0.5);
+subtitle.SetX(Window.GetWidth() / 2);
+subtitle.SetY(Window.GetHeight() / 2 + 20);
