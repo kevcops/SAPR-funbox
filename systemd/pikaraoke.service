@@ -10,7 +10,7 @@ Group=funbox
 Environment=HOME=/home/funbox
 Environment=PATH=/home/funbox/.local/bin:/home/funbox/.cargo/bin:/home/funbox/.deno/bin:/usr/local/bin:/usr/bin:/bin
 WorkingDirectory=/srv/funbox/karaoke
-ExecStart=/home/funbox/.local/bin/pikaraoke --headless -d /srv/funbox/karaoke
+ExecStart=/home/funbox/.local/bin/pikaraoke --headless -d /srv/funbox/karaoke --url http://karaoke.local:5555
 Restart=on-failure
 RestartSec=3
 
