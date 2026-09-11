@@ -18,11 +18,12 @@ echo "==> Installing appliance dependencies"
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
   sudo curl ca-certificates git ffmpeg \
   alsa-utils pipewire pipewire-pulse pipewire-alsa wireplumber pulseaudio-utils \
+  bluez blueman libspa-0.2-bluetooth \
   xserver-xorg xinit openbox chromium \
-  plymouth plymouth-themes \
+  plymouth plymouth-themes librsvg2-bin \
   network-manager network-manager-gnome tint2 lxpolkit zenity dbus-x11 rfkill \
   avahi-daemon libnss-mdns \
-  unclutter fonts-dejavu-core \
+  unclutter fonts-dejavu-core fonts-manrope \
   rsync zip jq
 
 if ! id "${FUNBOX_USER}" >/dev/null 2>&1; then
@@ -31,30 +32,14 @@ if ! id "${FUNBOX_USER}" >/dev/null 2>&1; then
 fi
 
 echo "==> Creating media directories"
-# PiKaraoke itself runs as the unprivileged funbox account and writes downloads
-# directly below MEDIA_ROOT. Create the root explicitly as funbox-owned; when
-# install -d creates missing intermediate directories implicitly they otherwise
-# inherit root ownership from this root-run installer.
 install -d -m 0755 -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}"
 install -d -m 0755 -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/top-karaoke"
 install -d -m 0755 -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/events/current"
 install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${FUNBOX_HOME}/.config/openbox"
-
-# Repair ownership on reruns too. This fixes machines installed by older
-# versions where /srv/funbox/karaoke was created as root and PiKaraoke could
-# browse but failed with EACCES when downloading a song.
 chown -R "${FUNBOX_USER}:${FUNBOX_USER}" "${MEDIA_ROOT}"
-
-# install -d can create intermediate parent directories as root. The dedicated
-# account must own its entire home before uv/Deno write shell configuration.
 chown -R "${FUNBOX_USER}:${FUNBOX_USER}" "${FUNBOX_HOME}"
 
 echo "==> Configuring NetworkManager for renter-facing networking"
-# A minimal Debian install may leave the installer-used Wi-Fi connection in
-# /etc/network/interfaces. ifupdown then starts its own wpa_supplicant process,
-# which races NetworkManager for the same radio. Funbox uses NetworkManager as
-# the single owner of Ethernet and Wi-Fi so the graphical setup can scan and
-# change networks reliably.
 if [[ -f /etc/network/interfaces && ! -f /etc/network/interfaces.funbox-backup ]]; then
   cp -a /etc/network/interfaces /etc/network/interfaces.funbox-backup
 fi
@@ -70,9 +55,6 @@ cat >/etc/NetworkManager/conf.d/10-funbox-managed.conf <<'EOF'
 managed=true
 EOF
 
-# The renter-facing graphical session runs as the locked-down funbox account.
-# Permit only NetworkManager operations needed to select/connect Wi-Fi without
-# exposing the SAPR administrator password or granting general sudo access.
 install -d /etc/polkit-1/rules.d
 cat >/etc/polkit-1/rules.d/49-funbox-networkmanager.rules <<EOF
 polkit.addRule(function(action, subject) {
@@ -88,8 +70,6 @@ EOF
 chmod 0644 /etc/polkit-1/rules.d/49-funbox-networkmanager.rules
 
 echo "==> Configuring customer karaoke address (karaoke.local)"
-# Keep the system hostname as "funbox" for administration/Tailscale while
-# advertising a stable customer-facing mDNS hostname on the local network.
 if [[ -f /etc/avahi/avahi-daemon.conf && ! -f /etc/avahi/avahi-daemon.conf.funbox-backup ]]; then
   cp -a /etc/avahi/avahi-daemon.conf /etc/avahi/avahi-daemon.conf.funbox-backup
 fi
@@ -98,9 +78,10 @@ sed -i '/^\[server\]/a host-name=karaoke' /etc/avahi/avahi-daemon.conf
 systemctl enable --now avahi-daemon.service
 systemctl restart avahi-daemon.service
 
+echo "==> Enabling Bluetooth audio support"
+systemctl enable --now bluetooth.service || true
+
 echo "==> Installing Tailscale for remote support"
-# Use Tailscale's official Debian repository rather than the convenience
-# installer so factory installs are predictable and repeatable.
 . /etc/os-release
 TAILSCALE_CODENAME="${VERSION_CODENAME:-trixie}"
 install -d -m 0755 /usr/share/keyrings
@@ -124,8 +105,11 @@ echo "==> Installing PiKaraoke as dedicated appliance user"
 sudo -u "${FUNBOX_USER}" -H bash -lc \
   'export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.deno/bin:$PATH"; if uv tool list 2>/dev/null | grep -q "pikaraoke"; then uv tool upgrade pikaraoke; else uv tool install pikaraoke; fi'
 
+echo "==> Applying SAPR Funbox branding"
+bash "${REPO_DIR}/scripts/funbox-branding-install" "${REPO_DIR}"
+
 echo "==> Installing appliance scripts"
-for f in funbox-status funbox-restart funbox-support funbox-library funbox-event funbox-wifi-setup funbox-audio; do
+for f in funbox-status funbox-restart funbox-support funbox-library funbox-event funbox-wifi-setup funbox-audio funbox-bluetooth-setup funbox-branding-install; do
   install -m 0755 "${REPO_DIR}/scripts/${f}" "/usr/local/bin/${f}"
 done
 
@@ -159,6 +143,8 @@ install -m 0644 "${REPO_DIR}/assets/splash/karaoke/sa-party-karaoke.plymouth" \
   /usr/share/plymouth/themes/sa-party-karaoke/sa-party-karaoke.plymouth
 install -m 0644 "${REPO_DIR}/assets/splash/karaoke/sa-party-karaoke.script" \
   /usr/share/plymouth/themes/sa-party-karaoke/sa-party-karaoke.script
+install -m 0644 /opt/funbox/branding/sa-party-logo.png \
+  /usr/share/plymouth/themes/sa-party-karaoke/sa-party-logo.png
 plymouth-set-default-theme -R sa-party-karaoke || true
 
 echo "==> Enabling services"
@@ -173,7 +159,8 @@ echo "Permanent songs: ${MEDIA_ROOT}/top-karaoke"
 echo "Current event:    ${MEDIA_ROOT}/events/current"
 echo "Wi-Fi setup:      opens automatically at startup when offline"
 echo "Customer URL:     http://karaoke.local:5555"
-echo "Audio:            PipeWire/WirePlumber with automatic HDMI -> analog fallback"
+echo "Branding:         SAPR logo + approved plum/coral/aqua/cream theme"
+echo "Audio:            PipeWire/WirePlumber with HDMI, analog/PA, and Bluetooth"
 echo "Tailscale:        installed and tailscaled enabled"
 echo
 echo "Audio controls:"
@@ -181,6 +168,10 @@ echo "  sudo funbox-audio status"
 echo "  sudo funbox-audio auto"
 echo "  sudo funbox-audio hdmi"
 echo "  sudo funbox-audio analog"
+echo "  sudo funbox-audio bluetooth"
+echo
+echo "Bluetooth pairing from the Funbox desktop:"
+echo "  funbox-bluetooth-setup"
 echo
 echo "To enroll this Funbox in your Tailscale network, run:"
 echo "  sudo tailscale up --hostname=funbox"
