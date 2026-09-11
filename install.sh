@@ -20,6 +20,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   xserver-xorg xinit openbox chromium \
   plymouth plymouth-themes \
   network-manager network-manager-gnome tint2 lxpolkit zenity dbus-x11 rfkill \
+  avahi-daemon libnss-mdns \
   unclutter fonts-dejavu-core \
   rsync zip jq
 
@@ -74,6 +75,17 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 chmod 0644 /etc/polkit-1/rules.d/49-funbox-networkmanager.rules
+
+echo "==> Configuring customer karaoke address (karaoke.local)"
+# Keep the system hostname as "funbox" for administration/Tailscale while
+# advertising a stable customer-facing mDNS hostname on the local network.
+if [[ -f /etc/avahi/avahi-daemon.conf && ! -f /etc/avahi/avahi-daemon.conf.funbox-backup ]]; then
+  cp -a /etc/avahi/avahi-daemon.conf /etc/avahi/avahi-daemon.conf.funbox-backup
+fi
+sed -i '/^host-name=/d;/^#host-name=/d' /etc/avahi/avahi-daemon.conf
+sed -i '/^\[server\]/a host-name=karaoke' /etc/avahi/avahi-daemon.conf
+systemctl enable --now avahi-daemon.service
+systemctl restart avahi-daemon.service
 
 echo "==> Installing Tailscale for remote support"
 # Use Tailscale's official Debian repository rather than the convenience
@@ -149,6 +161,7 @@ echo "Install complete."
 echo "Permanent songs: ${MEDIA_ROOT}/top-karaoke"
 echo "Current event:    ${MEDIA_ROOT}/events/current"
 echo "Wi-Fi setup:      opens automatically at startup when offline"
+echo "Customer URL:     http://karaoke.local:5555"
 echo "Tailscale:        installed and tailscaled enabled"
 echo
 echo "To enroll this Funbox in your Tailscale network, run:"
