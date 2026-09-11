@@ -30,9 +30,19 @@ if ! id "${FUNBOX_USER}" >/dev/null 2>&1; then
 fi
 
 echo "==> Creating media directories"
-install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/top-karaoke"
-install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/events/current"
+# PiKaraoke itself runs as the unprivileged funbox account and writes downloads
+# directly below MEDIA_ROOT. Create the root explicitly as funbox-owned; when
+# install -d creates missing intermediate directories implicitly they otherwise
+# inherit root ownership from this root-run installer.
+install -d -m 0755 -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}"
+install -d -m 0755 -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/top-karaoke"
+install -d -m 0755 -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${MEDIA_ROOT}/events/current"
 install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${FUNBOX_HOME}/.config/openbox"
+
+# Repair ownership on reruns too. This fixes machines installed by older
+# versions where /srv/funbox/karaoke was created as root and PiKaraoke could
+# browse but failed with EACCES when downloading a song.
+chown -R "${FUNBOX_USER}:${FUNBOX_USER}" "${MEDIA_ROOT}"
 
 # install -d can create intermediate parent directories as root. The dedicated
 # account must own its entire home before uv/Deno write shell configuration.
