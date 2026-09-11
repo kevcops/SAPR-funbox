@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+FUNBOX_USER="${FUNBOX_USER:-funbox}"
+STARTUP_VOLUME="${FUNBOX_AUDIO_VOLUME:-0.80}"
+
+usage() {
+  cat <<'EOF'
+Usage: funbox-audio <status|auto|hdmi|analog>
+
+  status  Show the Funbox PipeWire audio state and current default sink
+  auto    Prefer HDMI when available, otherwise use analog/headphone output
+  hdmi    Select HDMI/TV audio
+  analog  Select analog/headphone/PA audio
+
+Run as the funbox account, or as root (for example: sudo funbox-audio hdmi).
+EOF
+}
+
+if ! id "${FUNBOX_USER}" >/dev/null 2>&1; then
+  echo "Funbox appliance user '${FUNBOX_USER}' does not exist." >&2
+  exit 1
+fi
+
+FUNBOX_UID="$(id -u "${FUNBOX_USER}")"
+RUNTIME_DIR="/run/user/${FUNBOX_UID}"
+
+run_as_funbox() {
+  if [[ "$(id -un)" == "${FUNBOX_USER}" ]]; then
+    XDG_RUNTIME_DIR="${RUNTIME_DIR}" "$@"
+  elif [[ "${EUID}" -eq 0 ]]; then
+    sudo -u "${FUNBOX_USER}" env XDG_RUNTIME_DIR="${RUNTIME_DIR}" "$@"
+  else
+    echo "Run this command as '${FUNBOX_USER}' or with sudo." >&2
+    exit 1
+  fi
+}
+
+wait_for_pipewire() {
+  for _ in $(seq 1 30); do
+    if [[ -d "${RUNTIME_DIR}" ]] && run_as_funbox wpctl status >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "Funbox PipeWire session is not ready." >&2
+  return 1
+}
+
+# Clear hardware-level mute state without assuming a fixed ALSA card number.
+# Different Funbox hardware may enumerate HDMI and analog cards differently.
+unmute_alsa() {
+  local card controls ctl
+  while read -r card; do
+    [[ -n "${card}" ]] || continue
+    controls="$(amixer -c "${card}" scontrols 2>/dev/null || true)"
+    [[ -n "${controls}" ]] || continue
+
+    for ctl in Master Speaker Headphone; do
+      if grep -Fq "'${ctl}',0" <<<"${controls}"; then
+        amixer -q -c "${card}" sset "${ctl}" unmute >/dev/null 2>&1 || true
+      fi
+    done
+
+    if grep -Fq "'Master',0" <<<"${controls}"; then
+      amixer -q -c "${card}" sset Master 80% >/dev/null 2>&1 || true
+    fi
+    if grep -Fq "'PCM',0" <<<"${controls}"; then
+      amixer -q -c "${card}" sset PCM 80% >/dev/null 2>&1 || true
+    fi
+  done < <(awk '/^[[:space:]]*[0-9]+[[:space:]]+\[/ {print $1}' /proc/asound/cards 2>/dev/null)
+}
+
+list_sinks() {
+  run_as_funbox pactl list short sinks 2>/dev/null || true
+}
+
+find_sink() {
+  local kind="$1"
+  case "${kind}" in
+    hdmi)
+      list_sinks | awk '$2 ~ /\.hdmi-/ {print $2; exit}'
+      ;;
+    analog)
+      list_sinks | awk '$2 ~ /\.analog-/ {print $2; exit}'
+      ;;
+  esac
+}
+
+set_sink() {
+  local sink="$1"
+
+  unmute_alsa
+  run_as_funbox pactl set-default-sink "${sink}"
+  run_as_funbox pactl set-sink-mute "${sink}" 0
+  run_as_funbox pactl set-sink-volume "${sink}" "${STARTUP_VOLUME}"
+
+  # Move already-running Chromium/PiKaraoke audio to the newly selected output.
+  while read -r input_id _; do
+    [[ -n "${input_id}" ]] || continue
+    run_as_funbox pactl move-sink-input "${input_id}" "${sink}" >/dev/null 2>&1 || true
+  done < <(run_as_funbox pactl list short sink-inputs 2>/dev/null || true)
+
+  echo "Audio output: ${sink}"
+}
+
+command="${1:-status}"
+wait_for_pipewire
+
+case "${command}" in
+  status)
+    echo "Default sink:"
+    run_as_funbox pactl get-default-sink 2>/dev/null || true
+    echo
+    echo "Available sinks:"
+    list_sinks
+    echo
+    run_as_funbox wpctl status
+    ;;
+  auto)
+    sink="$(find_sink hdmi)"
+    if [[ -z "${sink}" ]]; then
+      sink="$(find_sink analog)"
+    fi
+    if [[ -z "${sink}" ]]; then
+      echo "No usable HDMI or analog audio sink is available." >&2
+      exit 1
+    fi
+    set_sink "${sink}"
+    ;;
+  hdmi|analog)
+    sink="$(find_sink "${command}")"
+    if [[ -z "${sink}" ]]; then
+      echo "Requested ${command} audio output is not currently available." >&2
+      echo "Use 'funbox-audio status' to see detected outputs." >&2
+      exit 1
+    fi
+    set_sink "${sink}"
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    usage >&2
+    exit 2
+    ;;
+esac
