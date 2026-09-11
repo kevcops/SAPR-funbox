@@ -141,31 +141,45 @@ strong,
   color: var(--sapr-ink) !important;
 }
 
+/* All conventional PiKaraoke action buttons use the SAPR coral. This catches
+ * plain Bulma .button controls as well as semantic primary/info/success/etc.
+ * Navigation selection is intentionally separate and remains SAPR aqua. */
+.button,
 .button.is-primary,
 .button.is-link,
+.button.is-info,
 .button.is-success,
-.button.is-warning {
+.button.is-warning,
+.button.is-danger {
   background: var(--sapr-coral) !important;
   border-color: transparent !important;
   color: white !important;
 }
 
+.button:hover,
+.button:focus,
 .button.is-primary:hover,
 .button.is-primary:focus,
 .button.is-link:hover,
 .button.is-link:focus,
+.button.is-info:hover,
+.button.is-info:focus,
 .button.is-success:hover,
 .button.is-success:focus,
 .button.is-warning:hover,
-.button.is-warning:focus {
+.button.is-warning:focus,
+.button.is-danger:hover,
+.button.is-danger:focus {
   background: #dc7774 !important;
+  border-color: transparent !important;
   color: white !important;
 }
 
-.button.is-info {
-  background: var(--sapr-aqua) !important;
-  border-color: transparent !important;
-  color: var(--sapr-ink) !important;
+.button[disabled],
+.button:disabled {
+  background: var(--sapr-coral) !important;
+  color: white !important;
+  opacity: 0.5;
 }
 
 .input,
