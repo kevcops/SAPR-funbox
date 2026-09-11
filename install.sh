@@ -37,10 +37,21 @@ install -d -o "${FUNBOX_USER}" -g "${FUNBOX_USER}" "${FUNBOX_HOME}/.config/openb
 # account must own its entire home before uv/Deno write shell configuration.
 chown -R "${FUNBOX_USER}:${FUNBOX_USER}" "${FUNBOX_HOME}"
 
-echo "==> Configuring NetworkManager for renter-facing Wi-Fi"
-# Debian's installer can leave interfaces under the ifupdown plugin while
-# NetworkManager defaults to managed=false. A Funbox needs NetworkManager to
-# own those interfaces so nmcli/nm-applet and first-boot Wi-Fi setup can scan.
+echo "==> Configuring NetworkManager for renter-facing networking"
+# A minimal Debian install may leave the installer-used Wi-Fi connection in
+# /etc/network/interfaces. ifupdown then starts its own wpa_supplicant process,
+# which races NetworkManager for the same radio. Funbox uses NetworkManager as
+# the single owner of Ethernet and Wi-Fi so the graphical setup can scan and
+# change networks reliably.
+if [[ -f /etc/network/interfaces && ! -f /etc/network/interfaces.funbox-backup ]]; then
+  cp -a /etc/network/interfaces /etc/network/interfaces.funbox-backup
+fi
+cat >/etc/network/interfaces <<'EOF'
+# SAPR Funbox: physical networking is managed exclusively by NetworkManager.
+auto lo
+iface lo inet loopback
+EOF
+
 install -d /etc/NetworkManager/conf.d
 cat >/etc/NetworkManager/conf.d/10-funbox-managed.conf <<'EOF'
 [ifupdown]
