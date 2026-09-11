@@ -75,6 +75,20 @@ polkit.addRule(function(action, subject) {
 EOF
 chmod 0644 /etc/polkit-1/rules.d/49-funbox-networkmanager.rules
 
+echo "==> Installing Tailscale for remote support"
+# Use Tailscale's official Debian repository rather than the convenience
+# installer so factory installs are predictable and repeatable.
+. /etc/os-release
+TAILSCALE_CODENAME="${VERSION_CODENAME:-trixie}"
+install -d -m 0755 /usr/share/keyrings
+curl -fsSL "https://pkgs.tailscale.com/stable/debian/${TAILSCALE_CODENAME}.noarmor.gpg" \
+  -o /usr/share/keyrings/tailscale-archive-keyring.gpg
+curl -fsSL "https://pkgs.tailscale.com/stable/debian/${TAILSCALE_CODENAME}.tailscale-keyring.list" \
+  -o /etc/apt/sources.list.d/tailscale.list
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y tailscale
+systemctl enable --now tailscaled.service
+
 echo "==> Installing uv for PiKaraoke"
 sudo -u "${FUNBOX_USER}" -H bash -lc \
   'if [[ ! -x "$HOME/.local/bin/uv" && ! -x "$HOME/.cargo/bin/uv" ]]; then curl -fsSL https://astral.sh/uv/install.sh | sh; fi'
@@ -135,6 +149,9 @@ echo "Install complete."
 echo "Permanent songs: ${MEDIA_ROOT}/top-karaoke"
 echo "Current event:    ${MEDIA_ROOT}/events/current"
 echo "Wi-Fi setup:      opens automatically at startup when offline"
+echo "Tailscale:        installed and tailscaled enabled"
 echo
-echo "Recommended: install/authenticate Tailscale separately if you want remote support."
+echo "To enroll this Funbox in your Tailscale network, run:"
+echo "  sudo tailscale up --hostname=funbox"
+echo
 echo "Reboot with: sudo reboot"
