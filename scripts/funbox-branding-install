@@ -17,6 +17,7 @@ install -d -m 0755 "${BRANDING_DIR}"
 install -m 0644 "${REPO_DIR}/assets/branding/sa-party-logo.svg" "${BRANDING_DIR}/sa-party-logo.svg"
 install -m 0644 "${REPO_DIR}/assets/branding/sapr-funbox.css" "${BRANDING_DIR}/sapr-funbox.css"
 install -m 0644 "${REPO_DIR}/assets/branding/sapr-playback-brand.css" "${BRANDING_DIR}/sapr-playback-brand.css"
+install -m 0644 "${REPO_DIR}/assets/branding/sapr-playback.js" "${BRANDING_DIR}/sapr-playback.js"
 
 # PiKaraoke's logo route declares image/png, so render the canonical SVG once
 # during installation rather than asking the browser to interpret a mismatched
@@ -42,6 +43,7 @@ TEMPLATE_DIR="${PIKARAOKE_DIR}/templates"
 install -d -m 0755 "${STATIC_DIR}/fonts"
 install -m 0644 "${BRANDING_DIR}/sapr-funbox.css" "${STATIC_DIR}/sapr-funbox.css"
 install -m 0644 "${BRANDING_DIR}/sapr-playback-brand.css" "${STATIC_DIR}/sapr-playback-brand.css"
+install -m 0644 "${BRANDING_DIR}/sapr-playback.js" "${STATIC_DIR}/sapr-playback.js"
 install -m 0644 "${BRANDING_DIR}/Fredoka-Bold.ttf" "${STATIC_DIR}/fonts/Fredoka-Bold.ttf"
 
 python3 - "${TEMPLATE_DIR}/base.html" "${TEMPLATE_DIR}/splash.html" <<'PY'
@@ -76,7 +78,6 @@ if header_marker not in base_text:
         raise SystemExit("PiKaraoke base.html changed: body hook not found")
     base_text = base_text.replace(needle, replacement, 1)
 
-# Keep the underlying engine name out of the normal renter-facing navigation.
 base_text = base_text.replace('<span>Pikaraoke</span>', '<span>Funbox</span>')
 base.write_text(base_text)
 
@@ -88,7 +89,7 @@ if 'id="sapr-tv-karaoke"' not in splash_text:
         raise SystemExit("PiKaraoke splash.html changed: logo hook not found")
     splash_text = splash_text.replace(needle, replacement, 1)
 
-# Put the canonical SA Party Rental logo in the center of the playback overlay.
+# Center the canonical SA Party Rental logo along the bottom during playback.
 if 'id="sapr-playback-brand"' not in splash_text:
     needle = '''  <div></div>\n  <div\n    id="up-next"'''
     replacement = '''  <div id="sapr-playback-brand">\n    <img src="{{ url_for('images.logo') }}" alt="SA Party Rental">\n  </div>\n  <div\n    id="up-next"'''
@@ -96,11 +97,7 @@ if 'id="sapr-playback-brand"' not in splash_text:
         raise SystemExit("PiKaraoke splash.html changed: bottom overlay hook not found")
     splash_text = splash_text.replace(needle, replacement, 1)
 
-# PiKaraoke's video container is present in the DOM before a song starts. Our
-# CSS uses the container's visible state to switch the bottom overlay from the
-# large centered idle QR to the compact playback layout. Explicitly hide the
-# video container in the initial template so the idle splash always wins;
-# splash.js calls .show() when real playback starts and .hide() when it ends.
+# Start with the video container hidden. PiKaraoke reveals it for playback.
 video_marker = '<div id="video-container" class="video-container">'
 if video_marker in splash_text:
     splash_text = splash_text.replace(
@@ -110,6 +107,17 @@ if video_marker in splash_text:
     )
 elif '<div id="video-container" class="video-container" style="display: none;">' not in splash_text:
     raise SystemExit("PiKaraoke splash.html changed: video container hook not found")
+
+# Track actual HTML5 playback rather than guessing from container visibility.
+# This guarantees the large centered QR remains on the idle splash and switches
+# to the compact bottom-left QR only after a real song begins playing.
+playback_js_marker = "filename='sapr-playback.js'"
+if playback_js_marker not in splash_text:
+    needle = '<script src="{{  url_for(\'static\', filename=\'hls-1.6.15.min.js\') }}"></script>'
+    replacement = '<script src="{{ url_for(\'static\', filename=\'sapr-playback.js\') }}"></script>\n' + needle
+    if needle not in splash_text:
+        raise SystemExit("PiKaraoke splash.html changed: playback script hook not found")
+    splash_text = splash_text.replace(needle, replacement, 1)
 
 splash.write_text(splash_text)
 PY
