@@ -6,8 +6,7 @@
 /* The Funbox QR is a required renter control, not an optional PiKaraoke
  * preference. PiKaraoke can persist hide_url and apply display:none inline;
  * force the QR visible so it is always present on both the idle screen and
- * during song playback. The main SAPR theme controls its idle/playback size
- * and position. */
+ * during song playback. */
 body:has(#logo-container) #qr-code,
 body.sapr-playing #qr-code {
   display: flex !important;
@@ -20,6 +19,51 @@ body.sapr-playing #qr-code img {
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+/* The idle rules in sapr-funbox.css use :has(#logo-container), which gives
+ * them higher CSS specificity than a plain body.sapr-playing selector. Match
+ * that specificity here so playback reliably restores PiKaraoke's traditional
+ * bottom-left QR layout instead of leaving the large idle QR in the center. */
+body.sapr-playing:has(#logo-container) #bottom-container {
+  align-items: flex-end !important;
+  bottom: 0 !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  left: 0 !important;
+  padding: 10px 20px !important;
+  top: auto !important;
+  width: 100% !important;
+}
+
+body.sapr-playing:has(#logo-container) #qr-code {
+  align-items: flex-start !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-width: 25% !important;
+  text-align: left !important;
+}
+
+body.sapr-playing:has(#logo-container) #qr-code img {
+  background: white !important;
+  border-radius: 0 !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  padding: 0 !important;
+  width: 100px !important;
+}
+
+body.sapr-playing:has(#logo-container) #qr-code::before {
+  content: none !important;
+  display: none !important;
+}
+
+body.sapr-playing:has(#logo-container) #qr-code .is-size-6 {
+  font-size: 1rem !important;
+  margin-top: 0 !important;
+  text-align: left !important;
+  text-shadow: 2px 0.75px black !important;
 }
 
 #sapr-playback-brand {
