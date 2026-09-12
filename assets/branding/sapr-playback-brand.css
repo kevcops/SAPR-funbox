@@ -8,9 +8,8 @@
   pointer-events: none;
 }
 
-/* PiKaraoke uses jQuery hide()/show() on #video-container. Match the same
- * active-video state used by the main Funbox theme for the compact QR layout. */
-body:has(#video-container:not([style*="display: none"])) #sapr-playback-brand {
+/* sapr-playback.js adds this class only after the karaoke <video> fires play. */
+body.sapr-playing #sapr-playback-brand {
   bottom: 12px;
   display: block;
   left: 50%;
