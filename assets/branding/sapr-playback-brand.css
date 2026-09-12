@@ -3,6 +3,25 @@
  * images.logo route. Do not redraw, recolor, or approximate the logo here.
  */
 
+/* The Funbox QR is a required renter control, not an optional PiKaraoke
+ * preference. PiKaraoke can persist hide_url and apply display:none inline;
+ * force the QR visible so it is always present on both the idle screen and
+ * during song playback. The main SAPR theme controls its idle/playback size
+ * and position. */
+body:has(#logo-container) #qr-code,
+body.sapr-playing #qr-code {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body:has(#logo-container) #qr-code img,
+body.sapr-playing #qr-code img {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 #sapr-playback-brand {
   display: none;
   pointer-events: none;
