@@ -18,6 +18,15 @@ install -m 0644 "${REPO_DIR}/assets/branding/sa-party-logo.svg" "${BRANDING_DIR}
 install -m 0644 "${REPO_DIR}/assets/branding/sapr-funbox.css" "${BRANDING_DIR}/sapr-funbox.css"
 install -m 0644 "${REPO_DIR}/assets/branding/sapr-playback-brand.css" "${BRANDING_DIR}/sapr-playback-brand.css"
 install -m 0644 "${REPO_DIR}/assets/branding/sapr-playback.js" "${BRANDING_DIR}/sapr-playback.js"
+install -m 0644 "${REPO_DIR}/assets/branding/sapr-audio-control.css" "${BRANDING_DIR}/sapr-audio-control.css"
+install -m 0644 "${REPO_DIR}/assets/branding/sapr-audio-control.js" "${BRANDING_DIR}/sapr-audio-control.js"
+
+# Install the tiny, audio-only control API. It intentionally exposes only the
+# four supported output modes; it is not a general shell/administration API.
+install -m 0755 "${REPO_DIR}/scripts/funbox-control-server" /usr/local/bin/funbox-control-server
+install -m 0644 "${REPO_DIR}/systemd/funbox-control.service" /etc/systemd/system/funbox-control.service
+systemctl daemon-reload
+systemctl enable --now funbox-control.service
 
 # PiKaraoke's logo route declares image/png, so render the canonical SVG once
 # during installation rather than asking the browser to interpret a mismatched
@@ -44,6 +53,8 @@ install -d -m 0755 "${STATIC_DIR}/fonts"
 install -m 0644 "${BRANDING_DIR}/sapr-funbox.css" "${STATIC_DIR}/sapr-funbox.css"
 install -m 0644 "${BRANDING_DIR}/sapr-playback-brand.css" "${STATIC_DIR}/sapr-playback-brand.css"
 install -m 0644 "${BRANDING_DIR}/sapr-playback.js" "${STATIC_DIR}/sapr-playback.js"
+install -m 0644 "${BRANDING_DIR}/sapr-audio-control.css" "${STATIC_DIR}/sapr-audio-control.css"
+install -m 0644 "${BRANDING_DIR}/sapr-audio-control.js" "${STATIC_DIR}/sapr-audio-control.js"
 install -m 0644 "${BRANDING_DIR}/Fredoka-Bold.ttf" "${STATIC_DIR}/fonts/Fredoka-Bold.ttf"
 
 python3 - "${TEMPLATE_DIR}/base.html" "${TEMPLATE_DIR}/splash.html" <<'PY'
@@ -70,12 +81,30 @@ if playback_css_marker not in base_text:
         raise SystemExit("SAPR Funbox CSS hook not found")
     base_text = base_text.replace(needle, replacement, 1)
 
+audio_css_marker = "filename='sapr-audio-control.css'"
+if audio_css_marker not in base_text:
+    needle = '<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'sapr-playback-brand.css\') }}">'
+    replacement = needle + '\n  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'sapr-audio-control.css\') }}">'
+    if needle not in base_text:
+        raise SystemExit("SAPR playback CSS hook not found")
+    base_text = base_text.replace(needle, replacement, 1)
+
 header_marker = 'class="sapr-brand-header"'
 if header_marker not in base_text:
     needle = '<body>\n\n  {% if not blank_page %}'
     replacement = '''<body>\n\n  {% if not blank_page %}\n  <div class="sapr-brand-header">\n    <img src="{{ url_for('images.logo') }}" alt="SA Party Rental">\n    <div class="sapr-karaoke-word">KARAOKE</div>\n  </div>'''
     if needle not in base_text:
         raise SystemExit("PiKaraoke base.html changed: body hook not found")
+    base_text = base_text.replace(needle, replacement, 1)
+
+# Load the phone-side audio selector on every normal PiKaraoke page. The script
+# self-disables on the TV splash because that page has no .sapr-brand-header.
+audio_js_marker = "filename='sapr-audio-control.js'"
+if audio_js_marker not in base_text:
+    needle = '</body>'
+    replacement = '  <script src="{{ url_for(\'static\', filename=\'sapr-audio-control.js\') }}"></script>\n' + needle
+    if needle not in base_text:
+        raise SystemExit("PiKaraoke base.html changed: body close hook not found")
     base_text = base_text.replace(needle, replacement, 1)
 
 base_text = base_text.replace('<span>Pikaraoke</span>', '<span>Funbox</span>')
@@ -109,8 +138,6 @@ elif '<div id="video-container" class="video-container" style="display: none;">'
     raise SystemExit("PiKaraoke splash.html changed: video container hook not found")
 
 # Track actual HTML5 playback rather than guessing from container visibility.
-# This guarantees the large centered QR remains on the idle splash and switches
-# to the compact bottom-left QR only after a real song begins playing.
 playback_js_marker = "filename='sapr-playback.js'"
 if playback_js_marker not in splash_text:
     needle = '<script src="{{  url_for(\'static\', filename=\'hls-1.6.15.min.js\') }}"></script>'
