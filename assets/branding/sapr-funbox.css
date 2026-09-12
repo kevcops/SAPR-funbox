@@ -19,7 +19,6 @@
   --sapr-ink: #2d2432;
   --sapr-paper: #fffaf2;
 
-  /* Re-map PiKaraoke's dark-theme variables into the SAPR palette. */
   --dark-bg-primary: var(--sapr-cream);
   --dark-bg-secondary: var(--sapr-paper);
   --dark-bg-tertiary: #e6dac1;
@@ -55,7 +54,6 @@ textarea,
   font-family: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
-/* SAPR brand header shown on phone/controller pages. */
 .sapr-brand-header {
   background: var(--sapr-plum);
   border-radius: 0 0 18px 18px;
@@ -104,9 +102,6 @@ textarea,
   color: var(--sapr-ink) !important;
 }
 
-/* Keep dropdown menu selection/hover states visibly on-brand. Bulma has more
- * specific dropdown rules than the generic navbar state above, so explicitly
- * cover the menu items shown in the mobile Funbox drawer. */
 .navbar-dropdown .navbar-item:hover,
 .navbar-dropdown .navbar-item:focus,
 .navbar-dropdown .navbar-item.is-active,
@@ -141,9 +136,6 @@ strong,
   color: var(--sapr-ink) !important;
 }
 
-/* All conventional PiKaraoke action buttons use the SAPR coral. This catches
- * plain Bulma .button controls as well as semantic primary/info/success/etc.
- * Navigation selection is intentionally separate and remains SAPR aqua. */
 .button,
 .button.is-primary,
 .button.is-link,
@@ -275,7 +267,7 @@ body:has(#logo-container) #logo-container .logo {
   transform: rotate(7deg);
 }
 
-/* Idle screen: keep the join QR large and centered beneath the SAPR branding. */
+/* Idle screen is the default state. Keep the join QR large and centered. */
 body:has(#logo-container) #bottom-container {
   align-items: center !important;
   bottom: auto !important;
@@ -325,11 +317,10 @@ body:has(#logo-container) #session-name {
   display: none !important;
 }
 
-/* During an active karaoke video, return PiKaraoke's overlay to its familiar
- * playback layout: a small QR in the bottom-left and Up Next on the right.
- * PiKaraoke uses jQuery hide()/show(), which leaves display:none on the video
- * container while idle and removes it once playback begins. */
-body:has(#video-container:not([style*="display: none"])) #bottom-container {
+/* Playback styling is enabled only when sapr-playback.js has received a real
+ * HTML5 video 'play' event. This avoids mistaking PiKaraoke's initially visible
+ * #video-container element for active playback and preserves the large idle QR. */
+body.sapr-playing #bottom-container {
   align-items: flex-end !important;
   bottom: 0 !important;
   box-sizing: border-box;
@@ -340,31 +331,30 @@ body:has(#video-container:not([style*="display: none"])) #bottom-container {
   width: 100% !important;
 }
 
-body:has(#video-container:not([style*="display: none"])) #qr-code {
+body.sapr-playing #qr-code {
   align-items: flex-start;
   max-width: 25% !important;
   text-align: left;
 }
 
-body:has(#video-container:not([style*="display: none"])) #qr-code img {
+body.sapr-playing #qr-code img {
   border-radius: 0;
   box-sizing: border-box;
   padding: 0;
   width: 100px !important;
 }
 
-body:has(#video-container:not([style*="display: none"])) #qr-code::before {
+body.sapr-playing #qr-code::before {
   content: none;
 }
 
-body:has(#video-container:not([style*="display: none"])) #qr-code .is-size-6 {
+body.sapr-playing #qr-code .is-size-6 {
   font-size: 1rem !important;
   margin-top: 0;
   text-align: left;
   text-shadow: 2px 0.75px black !important;
 }
 
-/* Keep song playback overlays functional; SAPR idle styling sits below video. */
 body:has(#logo-container) .video-container {
   background-color: #000 !important;
 }
