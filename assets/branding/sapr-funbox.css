@@ -359,6 +359,34 @@ body:has(#logo-container) .video-container {
   background-color: #000 !important;
 }
 
+/* Keep the idle player background on-brand even if PiKaraoke leaves its
+ * background-video container mounted. The service also disables bg video. */
+body:has(#logo-container) #bg-video-container {
+  background: var(--sapr-plum) !important;
+}
+
+/* ---------------- PiKaraoke screensaver ----------------
+ * PiKaraoke loads screensaver.css after the base theme, so these declarations
+ * intentionally use !important. The animated panel can continue moving and
+ * changing color; only the exact SAPR logo placement is corrected. */
+#screensaver {
+  background-color: var(--sapr-plum) !important;
+}
+
+#dvd {
+  align-items: center !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: min(78%, 330px) auto !important;
+  justify-content: center !important;
+}
+
+#screensaver-qr {
+  bottom: 10px;
+  position: absolute;
+  right: 10px;
+}
+
 @media (max-width: 650px) {
   .sapr-brand-header {
     border-radius: 0 0 14px 14px;
