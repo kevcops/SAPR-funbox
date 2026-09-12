@@ -16,6 +16,7 @@ fi
 install -d -m 0755 "${BRANDING_DIR}"
 install -m 0644 "${REPO_DIR}/assets/branding/sa-party-logo.svg" "${BRANDING_DIR}/sa-party-logo.svg"
 install -m 0644 "${REPO_DIR}/assets/branding/sapr-funbox.css" "${BRANDING_DIR}/sapr-funbox.css"
+install -m 0644 "${REPO_DIR}/assets/branding/sapr-playback-brand.css" "${BRANDING_DIR}/sapr-playback-brand.css"
 
 # PiKaraoke's logo route declares image/png, so render the canonical SVG once
 # during installation rather than asking the browser to interpret a mismatched
@@ -40,6 +41,7 @@ STATIC_DIR="${PIKARAOKE_DIR}/static"
 TEMPLATE_DIR="${PIKARAOKE_DIR}/templates"
 install -d -m 0755 "${STATIC_DIR}/fonts"
 install -m 0644 "${BRANDING_DIR}/sapr-funbox.css" "${STATIC_DIR}/sapr-funbox.css"
+install -m 0644 "${BRANDING_DIR}/sapr-playback-brand.css" "${STATIC_DIR}/sapr-playback-brand.css"
 install -m 0644 "${BRANDING_DIR}/Fredoka-Bold.ttf" "${STATIC_DIR}/fonts/Fredoka-Bold.ttf"
 
 python3 - "${TEMPLATE_DIR}/base.html" "${TEMPLATE_DIR}/splash.html" <<'PY'
@@ -56,6 +58,14 @@ if css_marker not in base_text:
     replacement = needle + '\n  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'sapr-funbox.css\') }}">'
     if needle not in base_text:
         raise SystemExit("PiKaraoke base.html changed: custom.css hook not found")
+    base_text = base_text.replace(needle, replacement, 1)
+
+playback_css_marker = "filename='sapr-playback-brand.css'"
+if playback_css_marker not in base_text:
+    needle = '<link rel="stylesheet" href="{{ url_for(\'static\', filename=\'sapr-funbox.css\') }}">'
+    replacement = needle + '\n  <link rel="stylesheet" href="{{ url_for(\'static\', filename=\'sapr-playback-brand.css\') }}">'
+    if needle not in base_text:
+        raise SystemExit("SAPR Funbox CSS hook not found")
     base_text = base_text.replace(needle, replacement, 1)
 
 header_marker = 'class="sapr-brand-header"'
