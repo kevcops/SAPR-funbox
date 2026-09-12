@@ -89,15 +89,27 @@ if 'id="sapr-tv-karaoke"' not in splash_text:
     splash_text = splash_text.replace(needle, replacement, 1)
 
 # Put the canonical SA Party Rental logo in the center of the playback overlay.
-# The CSS keeps this hidden on the idle screen and reveals it only while the
-# karaoke video is active. Reuse images.logo so this can never drift from the
-# exact approved logo asset installed above.
 if 'id="sapr-playback-brand"' not in splash_text:
     needle = '''  <div></div>\n  <div\n    id="up-next"'''
     replacement = '''  <div id="sapr-playback-brand">\n    <img src="{{ url_for('images.logo') }}" alt="SA Party Rental">\n  </div>\n  <div\n    id="up-next"'''
     if needle not in splash_text:
         raise SystemExit("PiKaraoke splash.html changed: bottom overlay hook not found")
     splash_text = splash_text.replace(needle, replacement, 1)
+
+# PiKaraoke's video container is present in the DOM before a song starts. Our
+# CSS uses the container's visible state to switch the bottom overlay from the
+# large centered idle QR to the compact playback layout. Explicitly hide the
+# video container in the initial template so the idle splash always wins;
+# splash.js calls .show() when real playback starts and .hide() when it ends.
+video_marker = '<div id="video-container" class="video-container">'
+if video_marker in splash_text:
+    splash_text = splash_text.replace(
+        video_marker,
+        '<div id="video-container" class="video-container" style="display: none;">',
+        1,
+    )
+elif '<div id="video-container" class="video-container" style="display: none;">' not in splash_text:
+    raise SystemExit("PiKaraoke splash.html changed: video container hook not found")
 
 splash.write_text(splash_text)
 PY
