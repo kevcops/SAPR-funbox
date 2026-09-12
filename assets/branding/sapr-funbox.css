@@ -275,6 +275,7 @@ body:has(#logo-container) #logo-container .logo {
   transform: rotate(7deg);
 }
 
+/* Idle screen: keep the join QR large and centered beneath the SAPR branding. */
 body:has(#logo-container) #bottom-container {
   align-items: center !important;
   bottom: auto !important;
@@ -322,6 +323,45 @@ body:has(#logo-container) #qr-code .is-size-6 {
 
 body:has(#logo-container) #session-name {
   display: none !important;
+}
+
+/* During an active karaoke video, return PiKaraoke's overlay to its familiar
+ * playback layout: a small QR in the bottom-left and Up Next on the right.
+ * PiKaraoke uses jQuery hide()/show(), which leaves display:none on the video
+ * container while idle and removes it once playback begins. */
+body:has(#video-container:not([style*="display: none"])) #bottom-container {
+  align-items: flex-end !important;
+  bottom: 0 !important;
+  box-sizing: border-box;
+  justify-content: space-between !important;
+  left: 0 !important;
+  padding: 10px 20px !important;
+  top: auto !important;
+  width: 100% !important;
+}
+
+body:has(#video-container:not([style*="display: none"])) #qr-code {
+  align-items: flex-start;
+  max-width: 25% !important;
+  text-align: left;
+}
+
+body:has(#video-container:not([style*="display: none"])) #qr-code img {
+  border-radius: 0;
+  box-sizing: border-box;
+  padding: 0;
+  width: 100px !important;
+}
+
+body:has(#video-container:not([style*="display: none"])) #qr-code::before {
+  content: none;
+}
+
+body:has(#video-container:not([style*="display: none"])) #qr-code .is-size-6 {
+  font-size: 1rem !important;
+  margin-top: 0;
+  text-align: left;
+  text-shadow: 2px 0.75px black !important;
 }
 
 /* Keep song playback overlays functional; SAPR idle styling sits below video. */
