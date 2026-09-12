@@ -1,0 +1,29 @@
+/* SAPR Funbox playback advertising overlay.
+ * The image itself is the canonical SA Party Rental logo served by PiKaraoke's
+ * images.logo route. Do not redraw, recolor, or approximate the logo here.
+ */
+
+#sapr-playback-brand {
+  display: none;
+  pointer-events: none;
+}
+
+/* PiKaraoke uses jQuery hide()/show() on #video-container. Match the same
+ * active-video state used by the main Funbox theme for the compact QR layout. */
+body:has(#video-container:not([style*="display: none"])) #sapr-playback-brand {
+  bottom: 12px;
+  display: block;
+  left: 50%;
+  position: fixed;
+  transform: translateX(-50%);
+  width: clamp(160px, 18vw, 280px);
+  z-index: 4;
+}
+
+#sapr-playback-brand img {
+  display: block;
+  height: auto;
+  max-height: 12vh;
+  object-fit: contain;
+  width: 100%;
+}
