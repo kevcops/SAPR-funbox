@@ -1,0 +1,60 @@
+#sapr-audio-control {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+#sapr-audio-control label {
+  color: #fffaf2;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+#sapr-audio-control select {
+  appearance: none;
+  background: #EFE5CF;
+  border: 2px solid #A6E1E3;
+  border-radius: 999px;
+  color: #2d2432;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-height: 36px;
+  padding: 6px 34px 6px 14px;
+  text-align: center;
+}
+
+#sapr-audio-control select:disabled {
+  opacity: 0.65;
+}
+
+#sapr-audio-status {
+  color: #fffaf2;
+  font-family: "Manrope", sans-serif;
+  font-size: 0.78rem;
+  min-width: 0;
+}
+
+#sapr-audio-status.is-error {
+  color: #ffe0dd;
+  font-weight: 700;
+}
+
+@media (max-width: 650px) {
+  #sapr-audio-control {
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  #sapr-audio-control select {
+    max-width: 60vw;
+  }
+
+  #sapr-audio-status {
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
