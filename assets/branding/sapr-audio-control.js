@@ -3,7 +3,9 @@
     ['auto', 'Auto'],
     ['hdmi', 'TV / HDMI'],
     ['analog', 'Speaker / PA'],
-    ['bluetooth', 'Bluetooth'],
+    // Bluetooth is intentionally hidden from the renter-facing phone UI for
+    // now. The backend support remains in place so it can be re-enabled later.
+    // ['bluetooth', 'Bluetooth'],
   ];
 
   const apiBase = () => `${window.location.protocol}//${window.location.hostname}:5556`;
