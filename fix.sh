@@ -77,32 +77,24 @@ echo "This script deliberately does not restart Xorg or disrupt PiKaraoke."
 echo "Send a photo of this screen."
 
 echo
-echo "=== OPTIONAL GRAPHICAL SESSION RESTART ==="
-echo "This may blank the laptop screen briefly. PiKaraoke system service is not restarted."
-read -r -p "Restart Funbox graphical session now? [y/N]: " answer
-case "$answer" in
- y|Y|yes|YES)
-  # Only use session restart if tty1 is configured to automatically log funbox back in.
-  if ! systemctl cat getty@tty1.service 2>/dev/null | grep -Eq 'agetty.*(--autologin[= ]funbox|--autologin funbox)'; then
-   echo "STOP: Automatic funbox login on tty1 is not verified."
-   echo "A session termination might leave the kiosk offline. No changes made."
-  elif ! grep -Eq '(^|[[:space:]])(exec[[:space:]]+)?(startx|xinit)([[:space:]]|$)' /home/funbox/.bash_profile /home/funbox/.profile /home/funbox/.bash_login 2>/dev/null; then
-   echo "STOP: Automatic startx on login is not verified. No changes made."
-  else
-   sid="$(loginctl list-sessions --no-legend | awk '$2=="1001" && $3=="funbox" && $4=="seat0" {print $1; exit}')"
-   if [ -z "$sid" ]; then
-    echo "STOP: Funbox tty1 session not uniquely found. No changes made."
-   else
-    echo "Verified auto-login and startx. Restarting graphical session $sid."
-    echo "Your laptop screen may go black temporarily."
-    sudo loginctl terminate-session "$sid"
-    sleep 6
-    echo "Session status after restart:"
-    loginctl list-sessions --no-pager
-    echo "HDMI status after restart:"
-    sudo -u funbox env DISPLAY=:0 XAUTHORITY=/home/funbox/.Xauthority xrandr --query 2>&1 | grep -E '^(Screen|eDP|HDMI|DP)|open display' || true
-   fi
-  fi
-  ;;
- *) echo "Restart skipped.";;
-esac
+echo
+echo "=== STARTUP PATH INVESTIGATION (READ ONLY) ==="
+echo "Auto-login getty:"
+systemctl cat getty@tty1.service 2>&1 | tail -45
+echo "Funbox login startup references:"
+for f in /home/funbox/.bash_profile /home/funbox/.profile /home/funbox/.bash_login /home/funbox/.xinitrc /home/funbox/.xsession /home/funbox/.config/openbox/autostart; do
+ if [ -f "$f" ]; then
+  echo "--- $f ---"
+  grep -nEi 'startx|xinit|Xorg|openbox|chrom|funbox|kiosk|exec|tty' "$f" | head -35
+ fi
+done
+echo "Xorg ancestry:"
+pid="$(pgrep -u funbox -x Xorg | head -1)"
+if [ -n "$pid" ]; then
+ ps -o pid,ppid,user,args -p "$pid"
+ command -v pstree >/dev/null && pstree -asp "$pid" | head -8
+fi
+echo "User units and timers:"
+sudo -n -u funbox env XDG_RUNTIME_DIR=/run/user/$(id -u funbox) systemctl --user list-units --all --no-pager 2>&1 | grep -Ei 'xorg|display|kiosk|funbox|graphical|startx' | head -25
+echo
+echo "No restart attempted. Send a photo of this startup section."
