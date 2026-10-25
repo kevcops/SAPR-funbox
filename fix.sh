@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SAPR Funbox: safe field diagnosis, no service restarts or changes.
+# SAPR Funbox: read-only diagnostics; optional guarded graphical session restart.
 set +e
 export LC_ALL=C
 OUT="$HOME/funbox-hdmi-report.txt"
@@ -75,3 +75,34 @@ echo "If Xorg still says disconnected, do not force a resolution."
 echo "A controlled restart of the graphical session may be needed."
 echo "This script deliberately does not restart Xorg or disrupt PiKaraoke."
 echo "Send a photo of this screen."
+
+echo
+echo "=== OPTIONAL GRAPHICAL SESSION RESTART ==="
+echo "This may blank the laptop screen briefly. PiKaraoke system service is not restarted."
+read -r -p "Restart Funbox graphical session now? [y/N]: " answer
+case "$answer" in
+ y|Y|yes|YES)
+  # Only use session restart if tty1 is configured to automatically log funbox back in.
+  if ! systemctl cat getty@tty1.service 2>/dev/null | grep -Eq 'agetty.*(--autologin[= ]funbox|--autologin funbox)'; then
+   echo "STOP: Automatic funbox login on tty1 is not verified."
+   echo "A session termination might leave the kiosk offline. No changes made."
+  elif ! grep -Eq '(^|[[:space:]])(exec[[:space:]]+)?(startx|xinit)([[:space:]]|$)' /home/funbox/.bash_profile /home/funbox/.profile /home/funbox/.bash_login 2>/dev/null; then
+   echo "STOP: Automatic startx on login is not verified. No changes made."
+  else
+   sid="$(loginctl list-sessions --no-legend | awk '$2=="1001" && $3=="funbox" && $4=="seat0" {print $1; exit}')"
+   if [ -z "$sid" ]; then
+    echo "STOP: Funbox tty1 session not uniquely found. No changes made."
+   else
+    echo "Verified auto-login and startx. Restarting graphical session $sid."
+    echo "Your laptop screen may go black temporarily."
+    sudo loginctl terminate-session "$sid"
+    sleep 6
+    echo "Session status after restart:"
+    loginctl list-sessions --no-pager
+    echo "HDMI status after restart:"
+    sudo -u funbox env DISPLAY=:0 XAUTHORITY=/home/funbox/.Xauthority xrandr --query 2>&1 | grep -E '^(Screen|eDP|HDMI|DP)|open display' || true
+   fi
+  fi
+  ;;
+ *) echo "Restart skipped.";;
+esac
