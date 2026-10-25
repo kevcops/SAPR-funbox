@@ -98,3 +98,25 @@ echo "User units and timers:"
 sudo -n -u funbox env XDG_RUNTIME_DIR=/run/user/$(id -u funbox) systemctl --user list-units --all --no-pager 2>&1 | grep -Ei 'xorg|display|kiosk|funbox|graphical|startx' | head -25
 echo
 echo "No restart attempted. Send a photo of this startup section."
+
+echo
+echo "=== EXACT XORG LAUNCH CHAIN ==="
+pid="$(pgrep -u funbox -x Xorg | head -1)"
+if [ -z "$pid" ]; then
+ echo "No funbox Xorg process found."
+else
+ while [ -n "$pid" ] && [ "$pid" -gt 1 ]; do
+  ps -p "$pid" -o pid=,ppid=,user=,args= -ww
+  parent="$(ps -p "$pid" -o ppid= | tr -d ' ')"
+  [ -z "$parent" ] && break
+  [ "$parent" = "$pid" ] && break
+  pid="$parent"
+ done
+fi
+echo "=== TTY1 LOGIN DETAILS ==="
+loginctl show-session 1 -p Name -p Service -p Type -p TTY -p Leader -p State 2>&1
+echo "=== USER LOGIN SCRIPT INVENTORY ==="
+ls -la /home/funbox/.bash_profile /home/funbox/.bashrc /home/funbox/.profile /home/funbox/.xinitrc /home/funbox/.xsession 2>&1
+echo "=== STARTUP COMMAND SEARCH ==="
+grep -RInE 'startx|xinit|Xorg|openbox-session' /home/funbox/.config /home/funbox/.bashrc /home/funbox/.profile /etc/profile.d /etc/systemd/system 2>/dev/null | head -35
+echo "No changes made. Send a photo of EXACT XORG LAUNCH CHAIN."
