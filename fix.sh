@@ -120,3 +120,15 @@ ls -la /home/funbox/.bash_profile /home/funbox/.bashrc /home/funbox/.profile /ho
 echo "=== STARTUP COMMAND SEARCH ==="
 grep -RInE 'startx|xinit|Xorg|openbox-session' /home/funbox/.config /home/funbox/.bashrc /home/funbox/.profile /etc/profile.d /etc/systemd/system 2>/dev/null | head -35
 echo "No changes made. Send a photo of EXACT XORG LAUNCH CHAIN."
+
+echo
+echo "=== PRIVILEGED FUNBOX STARTUP CHECK ==="
+for f in /home/funbox/.bash_profile /home/funbox/.bashrc /home/funbox/.profile /home/funbox/.bash_login /home/funbox/.xinitrc /home/funbox/.xsession; do
+ if sudo -n test -f "$f"; then
+  echo "--- $f ---"
+  sudo -n grep -nEi 'startx|xinit|Xorg|openbox|tty1|exec|DISPLAY|XAUTHORITY' "$f" | head -30
+ fi
+done
+echo "=== VERIFIED STARTUP CONFIGURATION ==="
+sudo -n grep -RInE 'startx|xinit|Xorg' /home/funbox/.bash_profile /home/funbox/.bashrc /home/funbox/.profile /home/funbox/.bash_login 2>/dev/null | head -30
+echo "Read-only. No graphical restart attempted."
