@@ -55,3 +55,23 @@ sed -n '/===== Xorg log locations/,/===== Graphics packages/p' "$OUT" | tail -50
 echo
 echo "Full report saved: $OUT"
 echo "No settings were changed. Photograph this screen."
+
+echo
+echo "=== NO SIGNAL RECOVERY GUIDE ==="
+echo "1. Select the exact HDMI input on the TV."
+echo "2. Unplug and reconnect both ends of the HDMI cable."
+echo "3. Power-cycle only the TV, leaving the laptop running."
+echo "4. If available, try another HDMI cable or TV input."
+echo
+echo "=== FRESH XORG HDMI STATUS ==="
+sudo -n -u funbox env DISPLAY=:0 XAUTHORITY=/home/funbox/.Xauthority xrandr --query 2>&1 | grep -E '^(Screen|eDP|HDMI|DP)|open display|Authorization' || true
+echo
+echo "=== XORG PROCESS AND USER SESSION ==="
+pgrep -a Xorg || true
+loginctl list-sessions --no-pager || true
+echo
+echo "=== NEXT STEP ==="
+echo "If Xorg still says disconnected, do not force a resolution."
+echo "A controlled restart of the graphical session may be needed."
+echo "This script deliberately does not restart Xorg or disrupt PiKaraoke."
+echo "Send a photo of this screen."
