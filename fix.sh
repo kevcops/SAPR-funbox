@@ -132,3 +132,35 @@ done
 echo "=== VERIFIED STARTUP CONFIGURATION ==="
 sudo -n grep -RInE 'startx|xinit|Xorg' /home/funbox/.bash_profile /home/funbox/.bashrc /home/funbox/.profile /home/funbox/.bash_login 2>/dev/null | head -30
 echo "Read-only. No graphical restart attempted."
+
+echo
+echo "=== VERIFIED GRAPHICAL RESTART ==="
+echo "This restarts tty1's funbox login/Xorg, not the PiKaraoke system service."
+echo "The kiosk display may go black and return after several seconds."
+read -r -p "Restart Funbox display now? [y/N]: " ans
+case "$ans" in
+ y|Y|yes|YES)
+  if ! systemctl cat getty@tty1.service 2>/dev/null | grep -Eq 'agetty.*--autologin[= ]funbox'; then
+   echo "STOP: funbox tty1 autologin not verified."
+  elif ! sudo -n grep -Eq 'exec[[:space:]]+startx' /home/funbox/.bash_profile; then
+   echo "STOP: automatic startx not verified."
+  elif ! sudo -n test -f /home/funbox/.xinitrc; then
+   echo "STOP: .xinitrc missing."
+  else
+   sid="$(loginctl list-sessions --no-legend | awk '$2=="1001" && $3=="funbox" && $4=="seat0" {print $1;exit}')"
+   if [ -z "$sid" ]; then
+    echo "STOP: funbox graphical login session not found."
+   else
+    echo "Terminating funbox login session $sid; getty should relaunch it."
+    sudo loginctl terminate-session "$sid"
+    sleep 12
+    echo "New sessions:"
+    loginctl list-sessions --no-pager
+    echo "HDMI status in restarted Xorg:"
+    sudo -n -u funbox env DISPLAY=:0 XAUTHORITY=/home/funbox/.Xauthority xrandr --query 2>&1 | grep -E '^(Screen|eDP|HDMI|DP)|open display|Authorization' || true
+    echo "If HDMI now says connected, we can enable the TV output next."
+   fi
+  fi
+  ;;
+ *) echo "Restart skipped.";;
+esac
